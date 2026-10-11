@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Simple Invoice</title>
+  <style>
+    body {
+      margin: 0;
+      background: #f4f6fb;
+      font-family: Arial, sans-serif;
+      color: #1d2433;
+    }
+    .app {
+      max-width: 430px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+    h2 {
+      text-align: center;
+      color: #2f6fed;
+      margin: 0 0 16px;
+      font-size: 24px;
+    }
+    input, button {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    input {
+      border: 1px solid #d9e1f0;
+      background: #fff;
+    }
+    button {
+      border: none;
+      background: #2f6fed;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .item {
+      background: #f9fbff;
+      border: 1px solid #e5ebf8;
+      border-radius: 12px;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+    .small {
+      font-size: 12px;
+      color: #67758a;
+      margin-bottom: 4px;
+      display: block;
+    }
+    .total {
+      text-align: right;
+      font-weight: bold;
+      color: #1b8c5a;
+      margin-top: 8px;
+    }
+    .remove {
+      background: #fbe7e9;
+      color: #d52f46;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+    .grand {
+      background: #ebf3ff;
+      color: #1f58d5;
+      font-weight: bold;
+      border-radius: 12px;
+      padding: 14px;
+      margin-top: 12px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 18px;
+    }
+    .saved {
+      margin-top: 12px;
+      font-size: 14px;
+      color: #55657f;
+    }
+    .saved-item {
+      background: #f9fbff;
+      border: 1px solid #e5ebf8;
+      border-radius: 10px;
+      padding: 10px;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card">
+      <h2>Invoice</h2>
+
+      <input id="invoiceNo" placeholder="Invoice Number" />
+      <input id="customer" placeholder="Customer Name" />
+      <input id="date" type="date" />
+
+      <div id="items"></div>
+
+      <button onclick="addItem()">Add Item</button>
+
+      <div class="grand">
+        <span>Total</span>
+        <span id="grandTotal">0</span>
+      </div>
+
+      <button onclick="saveInvoice()" style="margin-top:12px;">Save Invoice</button>
+    </div>
+
+    <div class="card">
+      <h2>Saved</h2>
+      <div id="savedInvoices"></div>
+    </div>
+  </div>
+
+  <script>
+    let items = [{ id: Date.now(), desc: "", price: 0, qty: 1 }];
+
+    function renderItems() {
+      const container = document.getElementById("items");
+      container.innerHTML = "";
+
+      items.forEach((item, index) => {
+        const itemDiv = document.createElement("div");
+        itemDiv.className = "item";
+
+        const total = Number(item.price || 0) * Number(item.qty || 0);
+
+        itemDiv.innerHTML = `
+          <div class="row">
+            <div>
+              <span class="small">Description</span>
+              <input data-index="${index}" data-field="desc" value="${item.desc}" placeholder="Item" />
+            </div>
+            <div>
+              <span class="small">Unit Price</span>
+              <input data-index="${index}" data-field="price" type="number" value="${item.price}" placeholder="0" />
+            </div>
+            <div>
+              <span class="small">Qty</span>
+              <input data-index="${index}" data-field="qty" type="number" value="${item.qty}" placeholder="1" />
+            </div>
+          </div>
+          <div class="total">${total.toLocaleString()}</div>
+          <button class="remove" onclick="removeItem(${index})">Remove</button>
+        `;
+
+        container.appendChild(itemDiv);
+      });
+
+      calcGrandTotal();
+    }
+
+    function addItem() {
+      items.push({ id: Date.now(), desc: "", price: 0, qty: 1 });
+      renderItems();
+    }
+
+    function removeItem(index) {
+      items.splice(index, 1);
+      if (items.length === 0) {
+        items.push({ id: Date.now(), desc: "", price: 0, qty: 1 });
+      }
+      renderItems();
+    }
+
+    function calcGrandTotal() {
+      const total = items.reduce((sum, item) => {
+        return sum + (Number(item.price || 0) * Number(item.qty || 0));
+      }, 0);
+
+      document.getElementById("grandTotal").textContent = total.toLocaleString();
+    }
+
+    document.addEventListener("input", function (event) {
+      const field = event.target.dataset.field;
+      const index = event.target.dataset.index;
+
+      if (field && index !== undefined) {
+        const item = items[Number(index)];
+        if (!item) return;
+
+        if (field === "price" || field === "qty") {
+          item[field] = Number(event.target.value || 0);
+        } else {
+          item[field] = event.target.value;
+        }
+
+        renderItems();
+      }
+    });
+
+    function saveInvoice() {
+      const invoiceNo = document.getElementById("invoiceNo").value.trim();
+      const customer = document.getElementById("customer").value.trim();
+      const date = document.getElementById("date").value;
+
+      if (!invoiceNo || !customer || !date) {
+        alert("Please fill Invoice Number, Customer Name, and Date.");
+        return;
+      }
+
+      const validItems = items.filter(item => (item.desc || item.price || item.qty) && (item.desc || Number(item.price) > 0 || Number(item.qty) > 0));
+
+      if (!validItems.length) {
+        alert("Please add at least one item.");
+        return;
+      }
+
+      const saved = JSON.parse(localStorage.getItem("savedInvoices") || "[]");
+
+      const invoice = {
+        invoiceNo,
+        customer,
+        date,
+        items: validItems.map(item => ({
+          desc: item.desc || "Item",
+          price: Number(item.price || 0),
+          qty: Number(item.qty || 0),
+          total: Number(item.price || 0) * Number(item.qty || 0)
+        })),
+        total: validItems.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.qty || 0)), 0)
+      };
+
+      saved.unshift(invoice);
+      localStorage.setItem("savedInvoices", JSON.stringify(saved));
+      renderSavedInvoices();
+      alert("Invoice saved successfully.");
+    }
+
+    function renderSavedInvoices() {
+      const list = JSON.parse(localStorage.getItem("savedInvoices") || "[]");
+      const box = document.getElementById("savedInvoices");
+
+      if (!list.length) {
+        box.innerHTML = "<div class='saved'>No saved invoice.</div>";
+        return;
+      }
+
+      box.innerHTML = list.map(inv => `
+        <div class="saved-item">
+          <strong>${inv.invoiceNo}</strong><br>
+          Customer: ${inv.customer}<br>
+          Date: ${inv.date}<br>
+          Total: ${Number(inv.total).toLocaleString()}
+        </div>
+      `).join("");
+    }
+
+    document.getElementById("date").valueAsDate = new Date();
+
+    renderItems();
+    renderSavedInvoices();
+  </script>
+</body>
+</html>
